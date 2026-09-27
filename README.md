@@ -379,4 +379,3 @@ Distribuido bajo la licencia [MIT](LICENSE).
 
 Las fuentes no se distribuyen con el proyecto. Se utilizan las fuentes
 instaladas en el sistema.
-```
