@@ -7,10 +7,13 @@ dependencias del proyecto.
 
 - Python 3.11+
 - Pillow
-- Fuentes del sistema: DejaVu Sans (texto), Noto Color Emoji (emojis) y
-  Liberation Sans para cursivas (si DejaVu no trae Oblique).
-- Código principal: `notiemoji.py`
-- Tests: `tests/test_notiemoji.py`
+- Fuentes del sistema: DejaVu Sans para texto (con `fonts-dejavu-extra` para
+  los estilos Oblique) y Noto Color Emoji para emojis. Liberation Sans es un
+  respaldo opcional de `TEXT_FONTS`: si `fonts-dejavu-extra` está instalado,
+  no hace falta.
+- Código principal: `notiemoji.py` (CLI e imágenes) y `api.py` (API HTTP con
+  FastAPI)
+- Tests: `tests/test_notiemoji.py` y `tests/test_api.py`
 - Gestión de dependencias con `uv` (`pyproject.toml` + `uv.lock`)
 
 ## Alcance
@@ -103,6 +106,10 @@ uv run python notiemoji.py -r 1920x1080 -p grafito -t "hola 🎨"
 
 # Ejecutar los tests
 uv run python -m unittest discover -s tests -v
+
+# Lint y type checking
+uv run ruff check .
+uv run ty check
 ```
 
 ## Documentación
@@ -112,8 +119,15 @@ uv run python -m unittest discover -s tests -v
 
 ## Formato y calidad
 
-- No hay linter ni formateador configurado.
-- Mantené un estilo compatible con PEP 8.
+- `ruff` es el linter y `ty` el type checker; los dos están configurados en
+  `pyproject.toml` y forman parte del grupo `dev`.
+- Reglas de `ruff`: `E`, `F`, `I`, `N`, `W`, `UP`, con `line-length = 100` y
+  `target-version = "py311"`; `E` y `W` cubren PEP 8.
+- `uv run ruff check .` y `uv run ty check` tienen que pasar antes de dar por
+  terminado un cambio.
+- `ruff format` no está aplicado al código: reformatearía `api.py`,
+  `notiemoji.py`, `tests/test_api.py` y `tests/test_notiemoji.py`, unas 140
+  líneas. No corras `ruff format` sin autorizar el reformato antes.
 - Preferí funciones simples y fáciles de probar.
 - Mantené claras las responsabilidades de cada módulo y función.
 - Manejá los errores de entrada de forma clara para el usuario.
