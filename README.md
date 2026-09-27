@@ -4,7 +4,6 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Pydantic](https://img.shields.io/badge/Pydantic-E93E4A?logo=pydantic&logoColor=white)](https://docs.pydantic.dev/)
 [![CI](https://github.com/ltrecanao/notiemoji/actions/workflows/ci.yml/badge.svg)](https://github.com/ltrecanao/notiemoji/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/github/license/ltrecanao/notiemoji)](LICENSE)
 
 API HTTP desarrollada con **FastAPI**, **Pydantic** y **Pillow** para generar
 wallpapers PNG personalizados con texto y emojis 🎨.
