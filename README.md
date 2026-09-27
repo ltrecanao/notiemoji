@@ -1,14 +1,36 @@
 # notiemoji
 
-Genera wallpapers PNG con un fondo de color plano y texto o emojis centrados.
+API HTTP desarrollada con **FastAPI**, **Pydantic** y **Pillow** para generar
+wallpapers PNG personalizados con texto y emojis 🎨.
+
+El proyecto incluye validación tipada de requests, endpoints REST, generación
+de imágenes en memoria, control de concurrencia, health check, documentación
+OpenAPI, tests automatizados y despliegue en Render.
 
 **Demo:** [https://notiemoji.onrender.com](https://notiemoji.onrender.com)
 
-![Ejemplo horizontal de notiemoji: «notiemoji 🎨» sobre un fondo oscuro](docs/horizontal.png)
+**Documentación de la API:**
+[https://notiemoji.onrender.com/docs](https://notiemoji.onrender.com/docs)
+
+## Características técnicas
+
+- API REST con FastAPI.
+- Validación de entrada mediante modelos Pydantic.
+- Documentación automática con OpenAPI y Swagger.
+- Generación de imágenes en memoria con Pillow.
+- Health check para comprobar el estado de la aplicación y sus fuentes.
+- Límite de concurrencia para controlar el uso de memoria.
+- Respuestas HTTP diferenciadas para validación, saturación y errores.
+- Tests unitarios y de integración con `unittest` y `TestClient`.
+- Despliegue automatizado en Render mediante `render.yaml`.
 
 ## Ejemplos
 
-El mismo script genera distintos formatos y estilos:
+El mismo script genera wallpapers en distintos formatos y estilos:
+
+| Horizontal — `1920x1080` |
+|---|
+| ![Ejemplo horizontal de notiemoji: «notiemoji 🎨» sobre un fondo oscuro](docs/horizontal.png) |
 
 | Vertical — `720x1080` | Cuadrado — `1080x1080` |
 |---|---|
@@ -16,15 +38,18 @@ El mismo script genera distintos formatos y estilos:
 
 ## Requisitos
 
-- Python 3.11 o superior
+- Python 3.11 o superior.
 - [uv](https://docs.astral.sh/uv/), para gestionar el entorno virtual y las
-  dependencias
-- Pillow 10.1 o superior
-- FastAPI, para la API HTTP, y `uvicorn`, el servidor que arranca `api.py`
-- En desarrollo: `httpx` (lo necesita `fastapi.testclient.TestClient`
-  para los tests de la API)
-- Fuentes del sistema: DejaVu Sans (texto) y Noto Color Emoji (emojis). Para
-  cursivas se usa Liberation Sans si DejaVu no trae la variante Oblique.
+  dependencias.
+- Pillow 10.1 o superior.
+- FastAPI y `uvicorn`, el servidor ASGI que ejecuta `api.py`.
+- En desarrollo, `httpx`, requerido por
+  `fastapi.testclient.TestClient`.
+- Fuentes del sistema:
+  - DejaVu Sans para texto.
+  - Noto Color Emoji para emojis.
+  - Liberation Sans para cursivas cuando DejaVu Sans no incluye la variante
+    Oblique.
 
 En Debian/Ubuntu:
 
@@ -41,13 +66,146 @@ Las dependencias están declaradas en `pyproject.toml` y se sincronizan con
 uv sync
 ```
 
-Eso crea el entorno virtual `.venv`, instala las dependencias de producción
-(`Pillow`, `fastapi` y `uvicorn`) más las de desarrollo (`httpx`, que
-necesita `fastapi.testclient.TestClient` para transporte HTTP) y deja la
-resolución fijada en `uv.lock`. El grupo de desarrollo se instala por
-defecto.
+Esto crea el entorno virtual `.venv`, instala las dependencias de producción
+(`Pillow`, `fastapi` y `uvicorn`) y las de desarrollo (`httpx`). La resolución
+de dependencias queda fijada en `uv.lock`.
 
-## Uso
+## API
+
+`api.py` expone una API HTTP con FastAPI que reutiliza la lógica de
+`notiemoji.py`. Las imágenes se generan en memoria y se devuelven como PNG sin
+escribirse en disco.
+
+### Arranque en desarrollo
+
+```bash
+uv run uvicorn api:app --reload
+```
+
+La API estará disponible en:
+
+```text
+http://notiemoji.onrender.com
+```
+
+La documentación interactiva está disponible en:
+
+```text
+http://notiemoji.onrender.com/docs
+```
+
+El esquema OpenAPI está disponible en:
+
+```text
+http://notiemoji.onrender.com/openapi.json
+```
+
+### Endpoints
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `POST` | `/wallpaper` | Genera un wallpaper y lo devuelve como `image/png`. |
+| `GET` | `/wallpaper` | Genera un wallpaper usando parámetros de query string. |
+| `GET` | `/paletas` | Lista las 10 paletas disponibles. |
+| `GET` | `/health` | Devuelve el estado de la aplicación y las fuentes disponibles. |
+| `GET` | `/` | Sirve el probador interactivo en español. |
+
+### Parámetros de `/wallpaper`
+
+`POST /wallpaper` recibe un body JSON. `GET /wallpaper` acepta los mismos
+campos mediante query string.
+
+| Campo | Tipo | Defecto | Validación |
+|---|---|---|---|
+| `width` | entero | obligatorio | Mayor que 0 y máximo de 4000. |
+| `height` | entero | obligatorio | Mayor que 0 y máximo de 4000. |
+| `text` | string | `""` | Texto y/o emojis. |
+| `palette` | string o `null` | `null` | Nombre de una paleta disponible. |
+| `color` | string o `null` | `null` | Color hexadecimal o nombre CSS. |
+| `text_color` | string o `null` | `null` | Color hexadecimal o nombre CSS. |
+| `font_size` | entero | `96` | Mayor que 0 y máximo de 2000. |
+| `bold` | booleano | `false` | Texto normal en negrita. |
+| `italic` | booleano | `false` | Texto normal en cursiva. |
+
+Si se combinan `palette` con `color` o `text_color`, los colores explícitos
+tienen prioridad.
+
+En la API solo se acepta el nombre exacto de una paleta, por ejemplo
+`noche`. El sinónimo `ninguna`, disponible en la CLI, no existe en la API.
+Para no utilizar una paleta, simplemente no envíes `palette`.
+
+### Validaciones y límites
+
+Cada lado de la imagen está limitado a 4000 píxeles.
+
+Una imagen de `4000x4000` en RGB ocupa aproximadamente 48 MB. El pico medido
+con emojis es de aproximadamente 90 MB. El límite mantiene controlado el uso
+de memoria durante la generación.
+
+La API permite un máximo de tres generaciones simultáneas. Las solicitudes
+adicionales se rechazan inmediatamente y no se encolan.
+
+### Códigos de respuesta
+
+| Código | Descripción |
+|---|---|
+| `200` | Wallpaper generado correctamente. |
+| `422` | Error de validación. Los mensajes se devuelven en español. |
+| `429` | Demasiadas generaciones simultáneas. Incluye `Retry-After: 1`. |
+| `503` | Falta la fuente `NotoColorEmoji.ttf`. |
+| `500` | Error inesperado durante la generación. |
+
+`GET /paletas` y `GET /health` responden con `200`. En `/health`, el estado
+real se indica en el body mediante `estado`, que puede ser `ok` o
+`degradado`.
+
+### Ejemplo con `POST`
+
+```bash
+curl -X POST http://notiemoji.onrender.com/wallpaper \
+  -H "Content-Type: application/json" \
+  -d '{"width":1920,"height":1080,"palette":"noche","text":"hola 🚀"}' \
+  -o wallpaper.png
+```
+
+### Ejemplo con `GET`
+
+Los parámetros se envían mediante query string. El emoji debe estar codificado
+en UTF-8:
+
+```bash
+curl -o wallpaper.png \
+  "http://notiemoji.onrender.com/wallpaper?width=1920&height=1080\
+&palette=noche&text=hola%20%f0%9f%9a%80&bold=true"
+```
+
+Para los mismos valores, `GET /wallpaper` devuelve el mismo PNG que
+`POST /wallpaper`, byte por byte.
+
+### Probador interactivo
+
+Abre:
+
+```text
+http://notiemoji.onrender.com/
+```
+
+El probador:
+
+- Obtiene las paletas mediante `GET /paletas`.
+- Permite seleccionar colores de fondo y texto.
+- Sincroniza los selectores de color con los campos de texto.
+- Acepta colores hexadecimales y nombres CSS.
+- Envía las solicitudes mediante `POST /wallpaper`.
+- Permite visualizar o descargar el wallpaper generado.
+
+Al seleccionar una paleta, los campos de color se rellenan automáticamente.
+Con «ninguna», la API utiliza `#000000` como fondo y `#ffffff` como color
+del texto.
+
+## CLI
+
+### Uso interactivo
 
 El modo interactivo se inicia sin argumentos:
 
@@ -55,139 +213,62 @@ El modo interactivo se inicia sin argumentos:
 uv run python notiemoji.py
 ```
 
-También se puede usar desde la línea de comandos:
+### Uso por línea de comandos
 
 ```bash
-uv run python notiemoji.py -r 1920x1080 -p grafito -f 96 -t "notiemoji 🎨"
-uv run python notiemoji.py -r 720x1080 -p noche -f 96 -i -t "notiemoji 🌙"
-uv run python notiemoji.py -r 1080x1080 -p papel -f 140 -b -t "notiemoji 🌈"
+uv run python notiemoji.py \
+  -r 1920x1080 \
+  -p grafito \
+  -f 96 \
+  -t "notiemoji 🎨"
 ```
-
-La salida por defecto es `wallpaper.png`. Para elegir otro archivo:
 
 ```bash
-uv run python notiemoji.py -r 1920x1080 -p oceano -t "hola 🚀" -o images/fondo.png
+uv run python notiemoji.py \
+  -r 720x1080 \
+  -p noche \
+  -f 96 \
+  -i \
+  -t "notiemoji 🌙"
 ```
-
-## API
-
-`api.py` expone una API HTTP con FastAPI que reutiliza la lógica de
-`notiemoji.py`. Genera el PNG en memoria y lo devuelve sin escribir archivos
-en disco.
-
-Arranque en desarrollo:
 
 ```bash
-uv run uvicorn api:app --reload
+uv run python notiemoji.py \
+  -r 1080x1080 \
+  -p papel \
+  -f 140 \
+  -b \
+  -t "notiemoji 🌈"
 ```
 
-Endpoints:
+La salida por defecto es `wallpaper.png`.
 
-| Endpoint | Descripción |
-|---|---|
-| `POST /wallpaper` | Genera el wallpaper y lo devuelve como `image/png`. |
-| `GET /wallpaper` | Igual que el `POST`, pero con los campos por query string. |
-| `GET /paletas` | Lista las 10 paletas (`nombre`, `color`, `texto`). |
-| `GET /health` | Estado (`ok` o `degradado`), versión y fuentes. |
-| `GET /` | Sirve el probador interactivo en español (`index.html`). |
-
-Campos del body JSON de `POST /wallpaper`. `GET /wallpaper` acepta los
-mismos campos como query string, con los mismos tipos, defectos y
-validaciones, así que esta tabla sirve para los dos:
-
-| Campo | Tipo | Defecto | Validación |
-|---|---|---|---|
-| `width` | entero | obligatorio | mayor a 0, máx. 4000 |
-| `height` | entero | obligatorio | mayor a 0, máx. 4000 |
-| `text` | string | `""` | texto y/o emojis |
-| `palette` | string o null | `null` | un nombre de la tabla de Paletas |
-| `color` | string o null | `null` | hex (`#0d1117`) o nombre CSS |
-| `text_color` | string o null | `null` | hex o nombre CSS |
-| `font_size` | entero | `96` | mayor a 0, máx. 2000 |
-| `bold` | booleano | `false` | |
-| `italic` | booleano | `false` | |
-
-La precedencia de colores es la misma que en la CLI. Solo se acepta un
-nombre de paleta tal cual (`noche`); el sinónimo `ninguna` de la CLI no
-existe acá, simplemente no envíes `palette`.
-
-Cada lado está limitado a 4000 px. Una imagen de 4000x4000 en RGB ocupa
-unos 48 MB (pico medido con emoji: ~90 MB), y el plan gratis de Render
-tiene 512 MB: el límite deja holgado el pico de memoria.
-
-Códigos de respuesta de `/wallpaper`:
-
-| Código | Cuándo |
-|---|---|
-| `200` | Devuelve el PNG generado. |
-| `422` | Validación; los mensajes van en español. |
-| `429` | Demasiadas generaciones simultáneas (máx. 3) con `Retry-After: 1`. |
-| `503` | Falta la fuente `NotoColorEmoji.ttf`; el detalle sugiere instalarla. |
-| `500` | Fallo inesperado, sin stack trace. |
-
-El `429` rechaza de inmediato, sin encolar: encolar acumularía imágenes
-en memoria, justo lo que el límite busca evitar.
-
-`GET /paletas` y `GET /health` responden `200` siempre. En `/health` el
-estado real va en el body: `estado` es `ok` o `degradado` según haya
-todas las fuentes, no el código HTTP.
-
-Ejemplo de petición:
+Para elegir otro archivo:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/wallpaper \
-  -H "Content-Type: application/json" \
-  -d '{"width": 1920, "height": 1080, "palette": "noche", "text": "hola 🚀"}' \
-  -o wallpaper.png
+uv run python notiemoji.py \
+  -r 1920x1080 \
+  -p oceano \
+  -t "hola 🚀" \
+  -o images/fondo.png
 ```
 
-La misma petición por query string. El emoji va percent-encoded en
-UTF-8 (`%f0%9f%9a%80` es 🚀) y la URL va partida por legibilidad (la
-barra invertida la vuelve a unir):
-
-```bash
-curl -o wallpaper.png \
-  "http://127.0.0.1:8000/wallpaper?width=1920&height=1080\
-&palette=noche&text=hola%20%f0%9f%9a%80&bold=true"
-```
-
-Ante los mismos valores, `GET /wallpaper` devuelve el mismo PNG que el
-`POST`, byte por byte.
-
-Abrí `http://127.0.0.1:8000/` para el probador interactivo: pide las
-paletas a `GET /paletas` y arma el select en el navegador; sin API
-detrás, el select queda solo con «ninguna». Al enviar el formulario hace
-el `fetch` a `POST /wallpaper` y muestra o descarga la imagen. La
-documentación interactiva está en `http://127.0.0.1:8000/docs` (Swagger),
-con el esquema en `/openapi.json`; `GET /` queda oculto de `/docs` y
-`GET /wallpaper` aparece junto al `POST` (mismo path, dos métodos).
-
-Al cambiar la paleta en el select, los campos «Color de fondo» y «Color
-de texto» se rellenan con la pareja de esa paleta, y sus selectores de
-color nativos también. Con «ninguna» los campos quedan vacíos: no se
-envían y la API aplica `#000000` / `#ffffff`.
-
-Cada campo de color tiene un selector de color nativo (`input
-type="color"`) junto al campo de texto. El selector escribe hex
-`#rrggbb`; el campo de texto además sigue aceptando nombres CSS
-(`navy`, `hotpink`, ...), que el selector no puede representar. Los dos
-están sincronizados en ambos sentidos.
-
-## Opciones
+### Opciones
 
 | Opción | Alias | Descripción |
 |---|---|---|
-| `--resolution` | `-r` | Tamaño de la imagen en formato `anchoxalto`; obligatorio en modo CLI. |
-| `--palette` | `-p` | Paleta curada que define fondo y texto. |
-| `--color` | `-c` | Color de fondo manual en hexadecimal o nombre CSS. |
-| `--text-color` | `-C` | Color del texto manual en hexadecimal o nombre CSS. |
-| `--font-size` | `-f` | Tamaño de la fuente en píxeles; por defecto `96`. Si el texto no cabe, se reduce solo hasta que quepa. |
+| `--resolution` | `-r` | Tamaño en formato `anchoxalto`. Obligatorio en modo CLI. |
+| `--palette` | `-p` | Paleta que define el fondo y el color del texto. |
+| `--color` | `-c` | Color de fondo en hexadecimal o nombre CSS. |
+| `--text-color` | `-C` | Color del texto en hexadecimal o nombre CSS. |
+| `--font-size` | `-f` | Tamaño de fuente en píxeles. Por defecto, `96`. |
 | `--bold` | `-b` | Dibuja el texto normal en negrita. |
 | `--italic` | `-i` | Dibuja el texto normal en cursiva. |
-| `--text` | `-t` | Texto y/o emojis para centrar. |
-| `--output` | `-o` | Ruta del PNG de salida; por defecto `wallpaper.png`. |
+| `--text` | `-t` | Texto y/o emojis que se van a centrar. |
+| `--output` | `-o` | Ruta del PNG de salida. Por defecto, `wallpaper.png`. |
 
-Si se combinan `-p` con `-c` o `-C`, los colores explícitos tienen prioridad.
+Si el texto no cabe, el tamaño de fuente se reduce automáticamente hasta que
+pueda entrar en la imagen.
 
 ## Paletas
 
@@ -204,20 +285,39 @@ Si se combinan `-p` con `-c` o `-C`, los colores explícitos tienen prioridad.
 | `uva` | `#1D001D` | `#ffaaff` |
 | `nanana` | `#101010` | `#ff50ff` |
 
-Las paletas están diseñadas para mantener un contraste alto entre el fondo y el
-texto. Los nombres de colores CSS también se pueden usar con `-c` y `-C`.
+Las paletas están diseñadas para mantener un contraste alto entre el fondo y
+el texto.
+
+También se pueden utilizar nombres de colores CSS con `-c` y `-C`, como
+`navy` o `hotpink`.
 
 ## Despliegue
 
-- **Render**: la configuración está en [`render.yaml`](render.yaml). El
-  build command es `pip install uv && uv sync --no-dev` y el start command
-  es `uv run uvicorn api:app --host 0.0.0.0 --port $PORT`. El probador
-  interactivo queda servido en `GET /`.
+El proyecto está configurado para desplegarse en Render mediante
+[`render.yaml`](render.yaml).
+
+### Build command
+
+```bash
+pip install uv && uv sync --no-dev
+```
+
+### Start command
+
+```bash
+uv run uvicorn api:app --host 0.0.0.0 --port $PORT
+```
+
+El probador interactivo queda disponible en la ruta `/`.
 
 ## Pruebas
 
-La suite utiliza `unittest` de la biblioteca estándar: 48 tests en dos
-archivos, `tests/test_notiemoji.py` (16) y `tests/test_api.py` (32).
+La suite utiliza `unittest` de la biblioteca estándar e incluye 48 tests:
+
+- 16 tests en `tests/test_notiemoji.py`.
+- 32 tests en `tests/test_api.py`.
+
+Para ejecutar todas las pruebas:
 
 ```bash
 uv run python -m unittest discover -s tests -v
@@ -225,5 +325,8 @@ uv run python -m unittest discover -s tests -v
 
 ## Licencia
 
-Distribuido bajo la licencia [MIT](LICENSE). Las fuentes no se distribuyen
-con el proyecto: se usan las instaladas en el sistema.
+Distribuido bajo la licencia [MIT](LICENSE).
+
+Las fuentes no se distribuyen con el proyecto. Se utilizan las fuentes
+instaladas en el sistema.
+```
