@@ -18,3 +18,9 @@
 - No amplíes el alcance de la tarea ni asumas decisiones faltantes.
 - No hagas commits, pushes, merges, borrados ni renombres sin autorización
   explícita.
+
+- Mantené una sola versión de Python en todo el proyecto. `render.yaml`
+  (`PYTHON_VERSION`), el `Dockerfile` (`FROM python:X`) y
+  `.github/workflows/ci.yml` (`PYTHON_VERSION`) tienen que decir lo mismo, y
+  `pyproject.toml` (`requires-python`, `target-version`, `python-version`) no
+  debe contradecirlos. El paso `Versiones` del CI falla si divergen.

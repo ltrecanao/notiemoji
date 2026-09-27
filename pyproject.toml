@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Genera wallpapers PNG con un fondo de color plano y texto o emojis centrados"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 
 # Dependencias de producción: solo lo necesario para servir la CLI y la API.
 # Nada de tests ni httpx: eso va en el grupo de desarrollo [dependency-groups].dev.
@@ -31,14 +31,15 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 py-modules = ["notiemoji", "api"]
 
-# ruff: linting y formateo.
+# ruff: linting y formateo. target-version va de acuerdo con la versión que
+# corre el proyecto en todos lados (Dockerfile, render.yaml y CI: 3.13).
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
 
 # ty: type checking estático.
 [tool.ty.environment]
-python-version = "3.11"
+python-version = "3.13"
