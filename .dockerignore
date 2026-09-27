@@ -1,0 +1,46 @@
+# Entornos y cachés: jamás deberían entrar al build context.
+.venv/
+venv/
+env/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ty_cache/
+.coverage
+htmlcov/
+
+# VCS y configuración local.
+.git/
+.github/
+.gitignore
+.env
+.env.*
+*.local
+
+# Editores y sistema.
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Documentación: los PNG de docs/ pesan más que el código y no corre en
+# runtime. README.md NO se excluye: pyproject.toml lo declara como `readme`
+# y el build del paquete lo necesita.
+docs/
+
+# Tests y skills: se validan en CI, no en la imagen de producción.
+tests/
+skills/
+AGENTS.md
+render.yaml
+Dockerfile
+.dockerignore
+
+# Wallpapers generados en local por la CLI.
+/*.png
