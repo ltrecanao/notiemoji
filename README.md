@@ -23,6 +23,7 @@ OpenAPI, tests automatizados y despliegue en Render.
 - Respuestas HTTP diferenciadas para validación, saturación y errores.
 - Tests unitarios y de integración con `unittest` y `TestClient`.
 - Despliegue automatizado en Render mediante `render.yaml`.
+- Soporte de contenedores con `Dockerfile` multi-etapa y `.dockerignore`.
 
 ## Ejemplos
 
@@ -48,13 +49,14 @@ El mismo script genera wallpapers en distintos formatos y estilos:
 - Fuentes del sistema:
   - DejaVu Sans para texto.
   - Noto Color Emoji para emojis.
-  - Liberation Sans para cursivas cuando DejaVu Sans no incluye la variante
-    Oblique.
+  - Liberation Sans, respaldo opcional de `TEXT_FONTS` para cursivas si
+    faltara el Oblique de DejaVu; con `fonts-dejavu-extra` no hace falta
+    instalarlo.
 
 En Debian/Ubuntu:
 
 ```bash
-sudo apt install fonts-dejavu-core fonts-noto-color-emoji
+sudo apt install fonts-dejavu-core fonts-dejavu-extra fonts-noto-color-emoji
 ```
 
 ## Instalación
@@ -296,6 +298,10 @@ También se pueden utilizar nombres de colores CSS con `-c` y `-C`, como
 El proyecto está configurado para desplegarse en Render mediante
 [`render.yaml`](render.yaml).
 
+Render usa el buildpack de Python (`runtime: python` en `render.yaml`), no
+el `Dockerfile`: la imagen contenedor no interviene en el despliegue de
+producción.
+
 ### Build command
 
 ```bash
@@ -310,12 +316,56 @@ uv run uvicorn api:app --host 0.0.0.0 --port $PORT
 
 El probador interactivo queda disponible en la ruta `/`.
 
+## Contenedores
+
+El repo incluye un `Dockerfile` en tres etapas (`deps` → `build` → `final`)
+y un `.dockerignore`. La imagen es local, para uso propio: el despliegue de
+producción corre en Render con el buildpack de Python.
+
+### Build
+
+El build exige `--format docker`:
+
+```bash
+podman build --format docker -t notiemoji:local .
+```
+
+Podman genera imágenes en formato OCI por defecto, y en ese formato
+`HEALTHCHECK` se descarta con el warning `HEALTHCHECK is not supported for
+OCI image format and will be ignored. Must use 'docker' format`. Con
+`--format docker` la sonda funciona; en OCI `podman inspect` devuelve
+`State.Health = null`.
+
+La imagen final pesa 183 MB. La sonda usa `python -c` con `urllib`, no
+`curl`, porque la imagen no incluye `curl`.
+
+### Run
+
+```bash
+podman run -d --name notiemoji -p 8000:8000 -e PORT=8000 notiemoji:local
+```
+
+La imagen corre como usuario sin privilegios (uid 10001, `notiemoji`). El
+`CMD` usa `exec` para dejar a uvicorn como PID 1 y que reciba SIGTERM, con
+`PORT` por defecto `8000`.
+
+### Verificación
+
+```bash
+podman inspect notiemoji --format '{{.State.Health.Status}}'
+curl -s http://127.0.0.1:8000/health
+```
+
+Usá `127.0.0.1` y no `localhost`: `localhost` puede resolver primero a
+`::1` (IPv6) y el forwarder de red de Podman (`pasta`) solo escucha en
+IPv4, por lo que `curl` contra `localhost` falla.
+
 ## Pruebas
 
-La suite utiliza `unittest` de la biblioteca estándar e incluye 48 tests:
+La suite utiliza `unittest` de la biblioteca estándar e incluye 49 tests:
 
 - 16 tests en `tests/test_notiemoji.py`.
-- 32 tests en `tests/test_api.py`.
+- 33 tests en `tests/test_api.py`.
 
 Para ejecutar todas las pruebas:
 
