@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>notiemoji — probador de la API</title>
+<style>
+  /* Tema magenta y negro, sobre la paleta nanana (#101010 / #ff50ff). */
+  :root {
+    color-scheme: dark;
+    --negro: #101010;
+    --negro-claro: #1D001D;
+    --negro-borde: #0a0a0a;
+    --magenta: #ff50ff;
+    --magenta-suave: #ffaaff;
+    --borde: #3a1f2c;
+    --texto: #f5f5f5;
+    --texto-tenue: #c9c9c9;
+    --error: #ff7777;
+    --ok: #ffaaff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1rem;
+    background: var(--negro);
+    color: var(--texto);
+    font: 16px/1.5 system-ui, -apple-system, "DejaVu Sans", sans-serif;
+  }
+  main { max-width: 42rem; margin: 0 auto; }
+  h1 { margin: 0 0 .25rem; font-size: 1.75rem; color: var(--magenta); }
+  p.intro { margin: 0 0 1.5rem; color: var(--texto-tenue); }
+  code { background: var(--negro-claro); color: var(--magenta-suave); padding: .1em .35em; border-radius: 4px; }
+  form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: .9rem 1rem;
+    padding: 1.25rem;
+    background: var(--negro-claro);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+  }
+  label { display: flex; flex-direction: column; gap: .3rem; font-size: .875rem; color: var(--texto-tenue); }
+  input[type="number"], input[type="text"], select {
+    padding: .5rem .6rem;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    background: var(--negro-borde);
+    color: var(--texto);
+    font: inherit;
+  }
+  input:focus, select:focus { outline: 2px solid var(--magenta); outline-offset: 1px; }
+  input[type="checkbox"] { accent-color: var(--magenta); }
+  /* El selector nativo va junto al campo de texto: el picker escribe hex y el
+     campo sigue admitiendo nombres CSS (navy, tomato, ...). */
+  .par-color { display: flex; gap: .4rem; align-items: stretch; }
+  .par-color input[type="text"] { flex: 1; min-width: 0; }
+  input[type="color"] {
+    width: 2.6rem;
+    padding: 0;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    background: var(--negro-borde);
+    cursor: pointer;
+  }
+  .casilla { flex-direction: row; align-items: center; gap: .5rem; align-self: end; padding-bottom: .55rem; }
+  .acciones { grid-column: 1 / -1; display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+  button {
+    padding: .6rem 1.4rem;
+    border: 0;
+    border-radius: 6px;
+    background: var(--magenta);
+    color: var(--negro);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { background: var(--magenta-suave); }
+  button[disabled] { opacity: .6; cursor: wait; }
+  #estado { margin: 0; min-height: 1.5em; font-size: .9rem; color: var(--texto-tenue); }
+  #estado.error { color: var(--error); }
+  #estado.ok { color: var(--ok); }
+  #resultado { margin-top: 1.5rem; }
+  #preview {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    background: #000;
+  }
+  #descargar { display: inline-block; margin-top: .75rem; color: var(--magenta); }
+  #descargar:hover { color: var(--magenta-suave); }
+</style>
+</head>
+<body>
+<main>
+  <h1>notiemoji</h1>
+  <p class="intro">Generá wallpapers con fondo de color plano y texto o emojis
+    centrados. Completá los campos y descargá el PNG.</p>
+
+  <form id="form">
+    <label>Ancho (px)
+      <input type="number" name="width" value="1920" min="1" max="4000" required>
+    </label>
+    <label>Alto (px)
+      <input type="number" name="height" value="1080" min="1" max="4000" required>
+    </label>
+    <label>Tamaño de fuente
+      <input type="number" name="font_size" value="96" min="1" max="2000" required>
+    </label>
+    <label>Paleta
+      <select name="palette">
+        <option value="">ninguna</option>
+      </select>
+    </label>
+    <label>Color de fondo
+      <span class="par-color">
+        <input type="color" id="color-picker" value="#101010" aria-label="Selector de color de fondo">
+        <input type="text" name="color" placeholder="#101010 o black">
+      </span>
+    </label>
+    <label>Color de texto
+      <span class="par-color">
+        <input type="color" id="text-color-picker" value="#ff50ff" aria-label="Selector de color de texto">
+        <input type="text" name="text_color" placeholder="#ff50ff o hotpink">
+      </span>
+    </label>
+    <label>Texto y/o emojis
+      <input type="text" name="text" value="notiemoji 🎨">
+    </label>
+    <label class="casilla"><input type="checkbox" name="bold"> Negrita</label>
+    <label class="casilla"><input type="checkbox" name="italic"> Cursiva</label>
+
+    <div class="acciones">
+      <button type="submit" id="generar">Generar wallpaper</button>
+      <p id="estado" role="status"></p>
+    </div>
+  </form>
+
+  <div id="resultado" hidden>
+    <img id="preview" alt="Wallpaper generado por la API">
+    <a id="descargar" download="wallpaper.png">Descargar PNG</a>
+  </div>
+</main>
+
+<script>
+"use strict";
+
+// URL base de la API desplegada (Render). Cambiar cuando se cree el proyecto.
+const API_URL = "https://notiemoji.onrender.com";
+
+const form = document.getElementById("form");
+const estado = document.getElementById("estado");
+const resultado = document.getElementById("resultado");
+const preview = document.getElementById("preview");
+const descargar = document.getElementById("descargar");
+const generar = document.getElementById("generar");
+
+// URL del blob anterior para no acumular memoria al regenerar.
+let blobUrl = null;
+
+const ES_HEX = /^#[0-9a-f]{6}$/i;
+
+// Paletas ofrecidas por GET /paletas: nombre -> [fondo, texto].
+const PALETTES = {};
+
+/** Llena el select desde GET /paletas; sin API queda solo "ninguna". */
+async function cargarPaletas() {
+  try {
+    const res = await fetch(`${API_URL}/paletas`);
+    if (!res.ok) return;
+    for (const { nombre, color, texto } of await res.json()) {
+      PALETTES[nombre] = [color, texto];
+      const opcion = document.createElement("option");
+      opcion.value = nombre;
+      opcion.textContent = nombre;
+      form.palette.append(opcion);
+    }
+  } catch (_) {
+    // HTML abierto sin API detrás: el select queda con "ninguna".
+  }
+}
+
+/** Convierte el `detail` de FastAPI en un mensaje legible. */
+async function detalleDeError(res) {
+  try {
+    const data = await res.json();
+    if (typeof data.detail === "string") return data.detail;
+    if (Array.isArray(data.detail)) {
+      return data.detail
+        .map((item) => `${(item.loc || []).slice(1).join(".")} ${item.msg}`)
+        .join(" | ");
+    }
+  } catch (_) {
+    // Respuesta sin cuerpo JSON: cae al mensaje genérico.
+  }
+  return `HTTP ${res.status}`;
+}
+
+/** Arma el JSON del body: solo incluye los campos con valor. */
+function armarPayload() {
+  const datos = new FormData(form);
+  const payload = {
+    width: Number(datos.get("width")),
+    height: Number(datos.get("height")),
+    font_size: Number(datos.get("font_size")),
+    text: String(datos.get("text") ?? ""),
+    bold: datos.get("bold") === "on",
+    italic: datos.get("italic") === "on",
+  };
+  for (const campo of ["palette", "color", "text_color"]) {
+    const valor = String(datos.get(campo) ?? "").trim();
+    if (valor) payload[campo] = valor;
+  }
+  return payload;
+}
+
+// Cada campo de color lleva su picker nativo: el picker solo admite hex y el
+// campo además acepta nombres CSS (navy, tomato, ...), que no se propagan.
+const camposColor = [
+  { campo: form.querySelector('input[name="color"]'), picker: document.getElementById("color-picker") },
+  { campo: form.querySelector('input[name="text_color"]'), picker: document.getElementById("text-color-picker") },
+];
+
+for (const { campo, picker } of camposColor) {
+  picker.addEventListener("input", () => {
+    campo.value = picker.value;
+  });
+  campo.addEventListener("input", () => {
+    const valor = campo.value.trim();
+    if (ES_HEX.test(valor)) picker.value = valor;
+  });
+}
+
+/**
+ * Pinta los dos campos de color con la pareja de la paleta elegida.
+ * Con "ninguna" los deja vacíos: no se envían y la API usa sus defectos.
+ */
+function aplicarPaleta() {
+  const pareja = PALETTES[form.palette.value] || ["", ""];
+  camposColor.forEach(({ campo, picker }, indice) => {
+    const color = pareja[indice] ?? "";
+    campo.value = color;
+    if (ES_HEX.test(color)) picker.value = color;
+  });
+}
+
+/**
+ * Toca GET /health apenas carga la página para despertar la API: en Render la
+ * instancia free se duerme por inactividad y el primer request pagaría ese
+ * arranque. Falla silenciosa si no hay API detrás (HTML suelto).
+ */
+function calentarAPI() {
+  fetch(`${API_URL}/health`).catch(() => {});
+}
+
+calentarAPI();
+cargarPaletas();
+form.palette.addEventListener("change", aplicarPaleta);
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  generar.disabled = true;
+  estado.className = "";
+  estado.textContent = "Generando…";
+
+  try {
+    const res = await fetch(`${API_URL}/wallpaper`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(armarPayload()),
+    });
+
+    if (!res.ok) {
+      estado.className = "error";
+      estado.textContent = await detalleDeError(res);
+      return;
+    }
+
+    const blob = await res.blob();
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+    blobUrl = URL.createObjectURL(blob);
+    preview.src = blobUrl;
+    descargar.href = blobUrl;
+    resultado.hidden = false;
+    estado.className = "ok";
+    estado.textContent = `Listo: ${res.status} ${res.headers.get("content-type")}`;
+  } catch (err) {
+    estado.className = "error";
+    estado.textContent = `No se pudo contactar a la API: ${err.message}`;
+  } finally {
+    generar.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

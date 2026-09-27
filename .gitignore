@@ -1,0 +1,31 @@
+# Entornos y cachés
+.venv/
+venv/
+env/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ty_cache/
+.coverage
+htmlcov/
+
+# Configuración y archivos locales
+.env
+.env.*
+!.env.example
+*.local
+
+# Editores y sistema
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Generados por la ejecución normal
+/*.png

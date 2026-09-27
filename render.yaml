@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: notiemoji
+    runtime: python
+    buildCommand: mkdir -p /opt/render/project/.xdg/fonts && curl -sL -o /opt/render/project/.xdg/fonts/NotoColorEmoji.ttf https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.051/fonts/NotoColorEmoji.ttf && uv sync --no-dev
+    startCommand: uv run uvicorn api:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      # find_emoji_font() busca en $XDG_DATA_HOME/fonts; el build escribe ahí.
+      - key: XDG_DATA_HOME
+        value: /opt/render/project/.xdg
