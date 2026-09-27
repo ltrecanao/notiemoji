@@ -5,7 +5,7 @@ dependencias del proyecto.
 
 ## Proyecto
 
-- Python 3.11+
+- Python 3.13+
 - Pillow
 - Fuentes del sistema: DejaVu Sans para texto (con `fonts-dejavu-extra` para
   los estilos Oblique) y Noto Color Emoji para emojis. Liberation Sans es un
@@ -76,7 +76,7 @@ No debe:
 - Usá nombres de variables y funciones descriptivos.
 - Documentá en español las funciones, clases y decisiones no obvias.
 - Priorizá una estructura clara para facilitar una comprensión rápida.
-- Conservá la compatibilidad con Python 3.11 o versiones posteriores.
+- Conservá la compatibilidad con Python 3.13 o versiones posteriores.
 - Seguí las convenciones y el estilo existentes en el proyecto.
 - Actualizá los tests cuando modifiques el comportamiento existente.
 
@@ -122,7 +122,7 @@ uv run ty check
 - `ruff` es el linter y `ty` el type checker; los dos están configurados en
   `pyproject.toml` y forman parte del grupo `dev`.
 - Reglas de `ruff`: `E`, `F`, `I`, `N`, `W`, `UP`, con `line-length = 100` y
-  `target-version = "py311"`; `E` y `W` cubren PEP 8.
+  `target-version = "py313"`; `E` y `W` cubren PEP 8.
 - `uv run ruff check .` y `uv run ty check` tienen que pasar antes de dar por
   terminado un cambio.
 - `ruff format` no está aplicado al código: reformatearía `api.py`,

@@ -1,5 +1,11 @@
 # notiemoji
 
+[![Python](https://img.shields.io/badge/python-3.13%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Pydantic](https://img.shields.io/badge/Pydantic-E93E4A?logo=pydantic&logoColor=white)](https://docs.pydantic.dev/)
+[![CI](https://github.com/ltrecanao/notiemoji/actions/workflows/ci.yml/badge.svg)](https://github.com/ltrecanao/notiemoji/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/ltrecanao/notiemoji)](LICENSE)
+
 API HTTP desarrollada con **FastAPI**, **Pydantic** y **Pillow** para generar
 wallpapers PNG personalizados con texto y emojis 🎨.
 
@@ -39,7 +45,7 @@ El mismo script genera wallpapers en distintos formatos y estilos:
 
 ## Requisitos
 
-- Python 3.11 o superior.
+- Python 3.13 o superior.
 - [uv](https://docs.astral.sh/uv/), para gestionar el entorno virtual y las
   dependencias.
 - Pillow 10.1 o superior.
