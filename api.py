@@ -3,19 +3,19 @@
 
 Reutiliza la lógica de notiemoji.py (paletas, colores y renderizado) para
 que la CLI y la API compartan comportamiento. No escribe archivos en disco.
-GET / sirve el probador interactivo (index.html) tal cual está en disco;
-las paletas se ofrecen en GET /paletas y el estado del servicio en GET /health.
+El frontend vive en GitHub Pages (docs/); la API se despliega en Render y
+expone GET /paletas, GET /health y GET|POST /wallpaper.
 
 Desarrollo local: uvicorn api:app --reload
 """
 
 import io
 import threading
-from pathlib import Path
 from typing import Annotated, Literal
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from PIL import ImageColor, ImageFont
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -41,10 +41,6 @@ GENERACIONES_SIMULTANEAS = 3
 # memoria, que es justo lo que el límite busca evitar.
 SEMAFORO_GENERACION = threading.BoundedSemaphore(GENERACIONES_SIMULTANEAS)
 
-# Página interactiva servida en GET /. Se resuelve relativa a este archivo y
-# no al cwd para que funcione igual desde cualquier directorio.
-INDEX_HTML = Path(__file__).parent / "index.html"
-
 # Etiqueta legible de cada estilo de notiemoji.TEXT_FONTS, para /health.
 ESTILOS_TEXTO = {
     (False, False): "normal",
@@ -56,6 +52,16 @@ ESTILOS_TEXTO = {
 app = FastAPI(
     title="notiemoji",
     description="Genera wallpapers PNG con fondo de color plano y texto o emojis centrados.",
+)
+
+# CORS: el frontend vive en GitHub Pages y la API en Render.
+# En desarrollo, el frontend corre en localhost con otro puerto.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://*.github.io"],
+    allow_origin_regex=r"^http://(127\.0\.0\.1|localhost):\d+$",
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 
@@ -161,15 +167,6 @@ class HealthResponse(BaseModel):
     estado: Literal["ok", "degradado"]
     version: str
     fuentes: Fuentes
-
-
-@app.get("/", include_in_schema=False)
-def index() -> FileResponse:
-    """Sirve el probador interactivo (index.html) tal cual está en disco.
-
-    No aparece en /docs porque es solo el frontend, no un endpoint de datos.
-    """
-    return FileResponse(INDEX_HTML, media_type="text/html")
 
 
 @app.get("/paletas", response_model=list[Paleta])

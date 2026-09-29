@@ -6,16 +6,28 @@
 [![CI](https://github.com/ltrecanao/notiemoji/actions/workflows/ci.yml/badge.svg)](https://github.com/ltrecanao/notiemoji/actions/workflows/ci.yml)
 
 API HTTP desarrollada con **FastAPI**, **Pydantic** y **Pillow** para generar
-wallpapers PNG personalizados con texto y emojis 🎨.
+wallpapers PNG personalizados con texto y emojis.
 
 El proyecto incluye validación tipada de requests, endpoints REST, generación
 de imágenes en memoria, control de concurrencia, health check, documentación
 OpenAPI, tests automatizados y despliegue en Render.
 
-**Demo:** [https://notiemoji.onrender.com](https://notiemoji.onrender.com)
+**Demo:** [https://ltrecanao.github.io/notiemoji/](https://ltrecanao.github.io/notiemoji/)
+
+**API:** [https://notiemoji.onrender.com](https://notiemoji.onrender.com)
 
 **Documentación de la API:**
 [https://notiemoji.onrender.com/docs](https://notiemoji.onrender.com/docs)
+
+## Arquitectura
+
+| Componente | Ubicación | Despliegue |
+|---|---|---|
+| Frontend | `docs/` | GitHub Pages |
+| Backend API | `api.py` | Render |
+
+El frontend es un sitio estático que consume la API cross-origin. La URL de
+la API se define en `docs/js/config.js`.
 
 ## Características técnicas
 
@@ -28,6 +40,7 @@ OpenAPI, tests automatizados y despliegue en Render.
 - Respuestas HTTP diferenciadas para validación, saturación y errores.
 - Tests unitarios y de integración con `unittest` y `TestClient`.
 - Despliegue automatizado en Render mediante `render.yaml`.
+- Frontend estático en GitHub Pages con workflow automatizado.
 - Soporte de contenedores con `Dockerfile` multi-etapa y `.dockerignore`.
 
 ## Ejemplos
@@ -92,19 +105,19 @@ uv run uvicorn api:app --reload
 La API estará disponible en:
 
 ```text
-http://notiemoji.onrender.com
+http://127.0.0.1:8000
 ```
 
 La documentación interactiva está disponible en:
 
 ```text
-http://notiemoji.onrender.com/docs
+http://127.0.0.1:8000/docs
 ```
 
 El esquema OpenAPI está disponible en:
 
 ```text
-http://notiemoji.onrender.com/openapi.json
+http://127.0.0.1:8000/openapi.json
 ```
 
 ### Endpoints
@@ -115,7 +128,6 @@ http://notiemoji.onrender.com/openapi.json
 | `GET` | `/wallpaper` | Genera un wallpaper usando parámetros de query string. |
 | `GET` | `/paletas` | Lista las 10 paletas disponibles. |
 | `GET` | `/health` | Devuelve el estado de la aplicación y las fuentes disponibles. |
-| `GET` | `/` | Sirve el probador interactivo en español. |
 
 ### Parámetros de `/wallpaper`
 
@@ -169,7 +181,7 @@ real se indica en el body mediante `estado`, que puede ser `ok` o
 ### Ejemplo con `POST`
 
 ```bash
-curl -X POST http://notiemoji.onrender.com/wallpaper \
+curl -X POST https://notiemoji.onrender.com/wallpaper \
   -H "Content-Type: application/json" \
   -d '{"width":1920,"height":1080,"palette":"noche","text":"hola 🚀"}' \
   -o wallpaper.png
@@ -182,33 +194,31 @@ en UTF-8:
 
 ```bash
 curl -o wallpaper.png \
-  "http://notiemoji.onrender.com/wallpaper?width=1920&height=1080\
+  "https://notiemoji.onrender.com/wallpaper?width=1920&height=1080\
 &palette=noche&text=hola%20%f0%9f%9a%80&bold=true"
 ```
 
 Para los mismos valores, `GET /wallpaper` devuelve el mismo PNG que
 `POST /wallpaper`, byte por byte.
 
-### Probador interactivo
+## Frontend
 
-Abre:
+El frontend es un sitio estático en `docs/` que se despliega en GitHub
+Pages. Consume la API de Render cross-origin.
 
-```text
-http://notiemoji.onrender.com/
+### Desarrollo local
+
+Para probar el frontend localmente, serví `docs/` con cualquier servidor
+estático:
+
+```bash
+cd docs && python -m http.server 8080
 ```
 
-El probador:
+La URL de la API se define en `docs/js/config.js`.
 
-- Obtiene las paletas mediante `GET /paletas`.
-- Permite seleccionar colores de fondo y texto.
-- Sincroniza los selectores de color con los campos de texto.
-- Acepta colores hexadecimales y nombres CSS.
-- Envía las solicitudes mediante `POST /wallpaper`.
-- Permite visualizar o descargar el wallpaper generado.
-
-Al seleccionar una paleta, los campos de color se rellenan automáticamente.
-Con «ninguna», la API utiliza `#000000` como fondo y `#ffffff` como color
-del texto.
+Las imágenes de ejemplo (`docs/*.png`) no se suben a GitHub Pages; son
+solo para el README.
 
 ## CLI
 
@@ -300,6 +310,8 @@ También se pueden utilizar nombres de colores CSS con `-c` y `-C`, como
 
 ## Despliegue
 
+### Render (backend)
+
 El proyecto está configurado para desplegarse en Render mediante
 [`render.yaml`](render.yaml).
 
@@ -307,19 +319,22 @@ Render usa el buildpack de Python (`runtime: python` en `render.yaml`), no
 el `Dockerfile`: la imagen contenedor no interviene en el despliegue de
 producción.
 
-### Build command
+#### Build command
 
 ```bash
 pip install uv && uv sync --no-dev
 ```
 
-### Start command
+#### Start command
 
 ```bash
 uv run uvicorn api:app --host 0.0.0.0 --port $PORT
 ```
 
-El probador interactivo queda disponible en la ruta `/`.
+### GitHub Pages (frontend)
+
+El workflow `.github/workflows/pages.yml` despliega `docs/` a GitHub
+Pages automáticamente en cada push a `main`.
 
 ## Contenedores
 
