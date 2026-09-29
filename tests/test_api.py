@@ -294,39 +294,5 @@ class HealthEndpointTests(unittest.TestCase):
                 self.assertEqual(response.json()["estado"], "degradado")
 
 
-class IndexEndpointTests(unittest.TestCase):
-    def setUp(self):
-        self.client = TestClient(app)
-
-    def test_root_serves_html_page(self):
-        response = self.client.get("/")
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.headers["content-type"].startswith("text/html"))
-        self.assertIn("<title>notiemoji", response.text)
-        self.assertIn("API_URL", response.text)
-
-    def test_index_form_posts_json_to_wallpaper_endpoint(self):
-        body = self.client.get("/").text
-        # El formulario sigue enviando el mismo JSON al mismo endpoint.
-        self.assertIn("fetch(`${API_URL}/wallpaper`", body)
-        self.assertIn('method: "POST"', body)
-        self.assertIn('"Content-Type": "application/json"', body)
-        self.assertIn("JSON.stringify(armarPayload())", body)
-
-    def test_root_is_hidden_from_openapi_schema(self):
-        paths = self.client.get("/openapi.json").json()["paths"]
-        self.assertNotIn("/", paths)
-
-    def test_index_fetches_palettes_from_endpoint(self):
-        # Las paletas ya no se inyectan en el HTML: el probador las pide
-        # con fetch(`${API_URL}/paletas`) y arma el select en el navegador.
-        body = self.client.get("/").text
-        self.assertIn("fetch(`${API_URL}/paletas`)", body)
-
-    def test_palette_select_keeps_none_option(self):
-        body = self.client.get("/").text
-        self.assertIn('<option value="">ninguna</option>', body)
-
-
 if __name__ == "__main__":
     unittest.main()

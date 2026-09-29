@@ -81,7 +81,7 @@ PALETTES = {
     "mate":      ("#101f10", "#6abe30"),
     "amor":      ("#901010", "#ffdddd"),
     "marte":     ("#1f1010", "#ff7777"),
-    "uva":       ("#f6f4fd", "#6d28d9"),
+    "uva":       ("#f6f4fd", "#5b21b6"),
     "nanana":    ("#101010", "#ff50ff"),
 }
 
