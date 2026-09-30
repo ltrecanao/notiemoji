@@ -58,7 +58,7 @@ app = FastAPI(
 # En desarrollo, el frontend corre en localhost con otro puerto.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://*.github.io"],
+    allow_origins=["https://ltrecanao.github.io"],
     allow_origin_regex=r"^http://(127\.0\.0\.1|localhost):\d+$",
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
